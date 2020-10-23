@@ -4,8 +4,9 @@ import columnify from 'columnify';
 import chalk from 'chalk';
 import Dispensary from 'dispensary';
 import { oneLine } from 'common-tags';
+import { lstat } from 'addons-scanner-utils/dist/io/utils';
+import { Directory, Xpi } from 'addons-scanner-utils/dist/io';
 
-import { lstatPromise } from 'io/utils';
 import { terminalWidth } from 'cli';
 import * as constants from 'const';
 import { BANNED_LIBRARIES, UNADVISED_LIBRARIES } from 'libraries';
@@ -26,7 +27,6 @@ import HTMLScanner from 'scanners/html';
 import JavaScriptScanner from 'scanners/javascript';
 import JSONScanner from 'scanners/json';
 import LangpackScanner from 'scanners/langpack';
-import { Crx, Directory, Xpi } from 'io';
 import { MINER_BLOCKLIST } from 'miner_blocklist';
 
 export default class Linter {
@@ -273,12 +273,12 @@ export default class Linter {
     return this.addonMetadata;
   }
 
-  async checkFileExists(filepath, _lstatPromise = lstatPromise) {
+  async checkFileExists(filepath) {
     const invalidMessage = new Error(
       `Path "${filepath}" is not a file or directory or does not exist.`
     );
     try {
-      const stats = await _lstatPromise(filepath);
+      const stats = await lstat(filepath);
       if (stats.isFile() === true || stats.isDirectory() === true) {
         return stats;
       }
@@ -399,7 +399,6 @@ export default class Linter {
   }
 
   async extractMetadata({
-    _Crx = Crx,
     _console = console,
     _Directory = Directory,
     _Xpi = Xpi,
@@ -409,17 +408,12 @@ export default class Linter {
     const stats = await this.checkFileExists(this.packagePath);
 
     if (stats.isFile()) {
-      if (this.packagePath.endsWith('.crx')) {
-        log.info('Package is a file ending in .crx; parsing as a CRX');
-        this.io = new _Crx(this.packagePath);
-      } else {
-        log.info('Package is a file. Attempting to parse as an .xpi/.zip');
-        this.io = new _Xpi(this.packagePath);
-      }
+      log.info('Package is a file. Attempting to parse as an .xpi/.zip');
+      this.io = new _Xpi({filepath: this.packagePath});
     } else {
       // If not a file then it's a directory.
       log.info('Package path is a directory. Parsing as a directory');
-      this.io = new _Directory(this.packagePath);
+      this.io = new _Directory({filepath: this.packagePath});
     }
 
     this.io.setScanFileCallback(this.shouldScanFile);
