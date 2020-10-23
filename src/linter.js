@@ -409,7 +409,7 @@ export default class Linter {
 
     if (stats.isFile()) {
       log.info('Package is a file. Attempting to parse as an .xpi/.zip');
-      this.io = new _Xpi({filepath: this.packagePath});
+      this.io = new _Xpi({filepath: this.packagePath, autoclose: true});
     } else {
       // If not a file then it's a directory.
       log.info('Package path is a directory. Parsing as a directory');
